@@ -1,5 +1,5 @@
 /*
- *    Copyright 2009-2023 the original author or authors.
+ *    Copyright 2009-2024 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -245,7 +245,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     ResultSet rs = stmt.getResultSet();
     while (rs == null) {
       // move forward to get the first resultset in case the driver
-      // doesn't return the resultset as the first result (HSQLDB 2.1)
+      // doesn't return the resultset as the first result (HSQLDB)
       if (stmt.getMoreResults()) {
         rs = stmt.getResultSet();
       } else if (stmt.getUpdateCount() == -1) {
@@ -261,7 +261,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     try {
       if (stmt.getConnection().getMetaData().supportsMultipleResultSets()) {
         // Crazy Standard JDBC way of determining if there are more results
-        // DO NOT try to 'imporove' the condition even if IDE tells you to!
+        // DO NOT try to 'improve' the condition even if IDE tells you to!
         // It's important that getUpdateCount() is called here.
         if (!(!stmt.getMoreResults() && stmt.getUpdateCount() == -1)) {
           ResultSet rs = stmt.getResultSet();
@@ -480,7 +480,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   private boolean applyPropertyMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject,
       ResultLoaderMap lazyLoader, String columnPrefix) throws SQLException {
-    final List<String> mappedColumnNames = rsw.getMappedColumnNames(resultMap, columnPrefix);
+    final Set<String> mappedColumnNames = rsw.getMappedColumnNames(resultMap, columnPrefix);
     boolean foundValues = false;
     final List<ResultMapping> propertyMappings = resultMap.getPropertyResultMappings();
     for (ResultMapping propertyMapping : propertyMappings) {
@@ -782,8 +782,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
 
   private boolean applyColumnOrderBasedConstructorAutomapping(ResultSetWrapper rsw, List<Class<?>> constructorArgTypes,
       List<Object> constructorArgs, Constructor<?> constructor, boolean foundValues) throws SQLException {
-    for (int i = 0; i < constructor.getParameterTypes().length; i++) {
-      Class<?> parameterType = constructor.getParameterTypes()[i];
+    Class<?>[] parameterTypes = constructor.getParameterTypes();
+    for (int i = 0; i < parameterTypes.length; i++) {
+      Class<?> parameterType = parameterTypes[i];
       String columnName = rsw.getColumnNames().get(i);
       TypeHandler<?> typeHandler = rsw.getTypeHandler(parameterType, columnName);
       Object value = typeHandler.getResult(rsw.getResultSet(), columnName);
@@ -1174,7 +1175,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
       if (resultMapping.isSimple()) {
         final String column = prependPrefix(resultMapping.getColumn(), columnPrefix);
         final TypeHandler<?> th = resultMapping.getTypeHandler();
-        List<String> mappedColumnNames = rsw.getMappedColumnNames(resultMap, columnPrefix);
+        Set<String> mappedColumnNames = rsw.getMappedColumnNames(resultMap, columnPrefix);
         // Issue #114
         if (column != null && mappedColumnNames.contains(column.toUpperCase(Locale.ENGLISH))) {
           final Object value = th.getResult(rsw.getResultSet(), column);
